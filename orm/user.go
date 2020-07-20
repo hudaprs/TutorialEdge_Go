@@ -70,3 +70,29 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(newUser)
 }
+
+// UpdateUser; Update one user
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// DeleteUser; Delete one user
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	DBURI := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", "127.0.0.1", "5432", "postgres", "gofirst", "26082002")
+	db, err := gorm.Open("postgres", DBURI)
+	if err != nil {
+		fmt.Println("Failed connecting to database")
+	}
+	defer db.Close()
+
+	params := mux.Vars(r)
+	id := params["id"]
+
+	var user User
+	db.Table("users").Where("id = ?", id).Find(&user)
+	deletedUser := db.Unscoped().Delete(&user)
+
+	json.NewEncoder(w).Encode(deletedUser)
+}
