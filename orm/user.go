@@ -35,7 +35,6 @@ func Migration() {
 
 // GetUsers getting all users
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 
 	var users []User
 
@@ -53,8 +52,6 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 
 // CreateUser; create new user
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	DBURI := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", "127.0.0.1", "5432", "postgres", "gofirst", "26082002")
 	db, err := gorm.Open("postgres", DBURI)
 	if err != nil {
@@ -71,14 +68,48 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newUser)
 }
 
-// UpdateUser; Update one user
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
+// GetUserByID
+func GetUserByID(w http.ResponseWriter, r *http.Request) {
+	DBURI := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", "127.0.0.1", "5432", "postgres", "gofirst", "26082002")
+	db, err := gorm.Open("postgres", DBURI)
+	if err != nil {
+		fmt.Println("Failed connecting to database")
+	}
+	defer db.Close()
 
+	var user User
+
+	params := mux.Vars(r)
+	id := params["id"]
+
+	find := db.Table("users").Where("id = ?", id).Find(&user)
+
+	json.NewEncoder(w).Encode(find)
 }
 
-// DeleteUser; Delete one user
+// UpdateUser Update one user
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	DBURI := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", "127.0.0.1", "5432", "postgres", "gofirst", "26082002")
+	db, err := gorm.Open("postgres", DBURI)
+	if err != nil {
+		fmt.Println("Failed connecting to database")
+	}
+	defer db.Close()
+
+	var user User
+
+	params := mux.Vars(r)
+	id := params["id"]
+
+	db.Table("users").Where("id = ?", id).Find(&user)
+	_ = json.NewDecoder(r.Body).Decode(&user)
+	updatedUser := db.Save(&user)
+
+	json.NewEncoder(w).Encode(updatedUser)
+}
+
+// DeleteUser Delete one user
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 
 	DBURI := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", "127.0.0.1", "5432", "postgres", "gofirst", "26082002")
 	db, err := gorm.Open("postgres", DBURI)
