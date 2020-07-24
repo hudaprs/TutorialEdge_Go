@@ -5,6 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+
+	"github.com/gorilla/mux"
 )
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +37,19 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("File Size: %+v\n", handler.Size)
 	fmt.Printf("Mime Header: %+v\n", handler.Header)
 
+	headerType := handler.Header["Content-Type"][0]
+	headerTypesArray := []string{"image/png", "image/jpeg", "image/jpg"}
+	headerTypes := map[string]string{}
+	for _, header := range headerTypesArray {
+		headerTypes[header] = header
+	}
+
+	// Check the type header of the file
+	if headerType != headerTypes[headerType] {
+		JSON(w, http.StatusBadRequest, map[string]interface{}{"Message": "The file must be png, jpeg, or jpg"})
+		return
+	}
+
 	// 3. Write temporary file on our server
 	tempFile, err := ioutil.TempFile("images", "upload-*.png")
 	if err != nil {
@@ -54,10 +70,27 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	JSON(w, http.StatusOK, map[string]interface{}{"Message": "Success upload file"})
 }
 
+func deleteFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	filename := mux.Vars(r)["filename"]
+
+	err := os.Remove("./images/" + filename)
+	if err != nil {
+		ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	JSON(w, http.StatusOK, map[string]interface{}{"Message": "File successfully deleted"})
+}
+
 func HandleRoutes() {
+	app := mux.NewRouter().StrictSlash(true)
+
 	fmt.Println("Server started at port 8000...")
-	http.HandleFunc("/api/upload", uploadFile)
-	log.Fatal(http.ListenAndServe(":8000", nil))
+	app.HandleFunc("/api/upload", uploadFile).Methods("POST")
+	app.HandleFunc("/api/delete/{filename}", deleteFile).Methods("DELETE")
+	log.Fatal(http.ListenAndServe(":8000", app))
 }
 
 func main() {
